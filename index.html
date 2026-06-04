@@ -3,53 +3,71 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KL Plaszow - Automated AR Platform</title>
+    <title>KL Plaszow - Map Integrated AR Platform</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; }
         
+        /* פאנל ימני */
         .hud-panel {
             position: absolute; top: 15px; right: 15px;
             background: rgba(20, 20, 20, 0.9); color: #f0f0f0;
-            padding: 20px; border-radius: 8px; z-index: 999;
-            max-width: 320px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            padding: 15px; border-radius: 8px; z-index: 999;
+            max-width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             direction: rtl; border-right: 4px solid #cc0000;
         }
-        .hud-panel h1 { margin: 0 0 8px 0; font-size: 18px; color: #ff3333; }
-        .hud-panel p { margin: 0 0 12px 0; font-size: 13px; line-height: 1.4; color: #ccc; }
+        .hud-panel h1 { margin: 0 0 5px 0; font-size: 16px; color: #ff3333; }
+        .hud-panel p { margin: 0; font-size: 12px; line-height: 1.4; color: #ccc; }
         
+        /* פאנל שמאלי - ניווט */
         .nav-panel {
             position: absolute; top: 15px; left: 15px;
             background: rgba(25, 25, 25, 0.95); color: #fff;
-            padding: 20px; border-radius: 8px; z-index: 999;
-            width: 280px; max-height: 80vh; overflow-y: auto;
+            padding: 15px; border-radius: 8px; z-index: 999;
+            width: 280px; max-height: 40vh; overflow-y: auto;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             direction: rtl; border-left: 4px solid #0088cc;
         }
-        .nav-panel h2 { margin: 0 0 12px 0; font-size: 16px; color: #00aaff; }
+        .nav-panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #00aaff; }
         
         .nav-btn {
             display: block; width: 100%; background: #333; color: #fff;
-            border: 1px solid #444; padding: 10px; margin-bottom: 8px;
+            border: 1px solid #444; padding: 8px; margin-bottom: 6px;
             border-radius: 4px; cursor: pointer; text-align: right;
             font-size: 12px; transition: background 0.2s;
         }
         .nav-btn:hover { background: #444; color: #00aaff; }
-        .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 15px; border: none; text-align: center; }
-        .reset-btn:hover { background: #ff3333; }
+        .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 10px; border: none; text-align: center; }
+
+        /* פאנל תחתון שמאלי - הטמעת גוגל מפות חיות */
+        .map-container {
+            position: absolute; bottom: 15px; left: 15px;
+            width: 280px; height: 220px;
+            background: rgba(20, 20, 20, 0.9);
+            border-radius: 8px; border: 2px solid #0088cc;
+            z-index: 999; overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+        }
+        .map-container iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
     <div class="hud-panel">
-        <h1>מערך פלאשוב AR דינמי</h1>
-        <p>הדמיית המרחב ההיסטורי נטענת כעת אוטומטית מקובץ הנתונים של המוזיאון.</p>
+        <h1>מערך פלאשוב AR דינמי + מפה</h1>
+        <p>שחזור תלת-ממדי. לחיצה על מבנה תנווט אותך במרחב ותציג את מיקומו הריאלי על מפת הלוויין של גוגל למטה.</p>
     </div>
 
     <div class="nav-panel">
         <h2>רשימת מבנים (קפיצה מהירה)</h2>
         <div id="dynamic-buttons"></div>
         <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס נקודת התחלה (Reset)</button>
+    </div>
+
+    <div class="map-container">
+        <iframe id="google-map-frame" 
+                src="https://maps.google.com/maps?q=50.033036,19.966311&t=k&z=17&output=embed">
+        </iframe>
     </div>
 
     <a-scene embedded vr-mode-ui="enabled: false" style="height: 100vh; width: 100vw;">
@@ -67,21 +85,15 @@
     </a-scene>
 
     <script>
-        // מיקום נקודת האמצע הווירטואלית של הסימולטור (ננעל על אזור הבית האפור כמרכז)
         const CENTER_LAT = 50.033036;
         const CENTER_LNG = 19.966311;
 
-        // המרת קואורדינטות גיאוגרפיות למטרים במרחב תלת-ממדי (יחסי למרכז)
         function geodeticToLocal(lat, lng) {
             const latDistance = (lat - CENTER_LAT) * 111139; 
             const lngDistance = (lng - CENTER_LNG) * (111139 * Math.cos(CENTER_LAT * Math.PI / 180));
-            return {
-                x: lngDistance, 
-                z: -latDistance // ב-A-Frame ציר Z שלילי פירושו קדימה
-            };
+            return { x: lngDistance, z: -latDistance };
         }
 
-        // טעינת הנתונים ורנדור המבנים בשטח
         async function loadCampData() {
             try {
                 const response = await fetch('plaszow_data.json');
@@ -90,14 +102,13 @@
                 const container = document.getElementById('camp-structures');
                 const btnContainer = document.getElementById('dynamic-buttons');
                 
-                structures.forEach((item, index) => {
+                structures.forEach((item) => {
                     const localCoords = geodeticToLocal(item.lat, item.lng);
                     
-                    // 1. יצירת היישות התלת ממדית עבור המבנה
+                    // בניית המבנה בתלת ממד
                     const entity = document.createElement('a-entity');
                     entity.setAttribute('position', `${localCoords.x} 0 ${localCoords.z}`);
                     
-                    // יצירת הקופסה (הצריף)
                     const box = document.createElement('a-box');
                     box.setAttribute('width', item.scale.w);
                     box.setAttribute('height', item.scale.h);
@@ -105,7 +116,6 @@
                     box.setAttribute('material', `color: ${item.color}; opacity: 0.85;`);
                     entity.appendChild(box);
                     
-                    // יצירת טקסט השם מעל המבנה
                     const text = document.createElement('a-text');
                     text.setAttribute('value', item.name);
                     text.setAttribute('align', 'center');
@@ -117,19 +127,27 @@
                     
                     container.appendChild(entity);
                     
-                    // 2. יצירת כפתור ניווט דינמי בפאנל השמאלי
+                    // בניית הכפתור שמנווט גם בתלת ממד וגם מעדכן את הגוגל מפות
                     const btn = document.createElement('button');
                     btn.className = 'nav-btn';
                     btn.innerHTML = `📍 ${item.name}`;
-                    // בעת לחיצה, המצלמה תקפוץ 12 מטרים ליד המבנה כדי שיוכלו לראות אותו בבירור
-                    btn.onclick = () => teleportTo(localCoords.x, 0, localCoords.z + 12, 0);
+                    btn.onclick = () => {
+                        // 1. קפיצה במרחב התלת ממדי
+                        teleportTo(localCoords.x, 0, localCoords.z + 12, 0);
+                        // 2. עדכון חלון הגוגל מפות לקואורדינטות הלוויין של המבנה הספציפי
+                        updateGoogleMap(item.lat, item.lng);
+                    };
                     btnContainer.appendChild(btn);
                 });
-                
-                console.log(`Successfully rendered ${structures.length} structures from KML data.`);
             } catch (error) {
-                console.error("Error loading Plaszow JSON map data:", error);
+                console.error("Error loading data:", error);
             }
+        }
+
+        function updateGoogleMap(lat, lng) {
+            const mapFrame = document.getElementById('google-map-frame');
+            // t=k מגדיר מצב לוויין (Satellite), z=18 מגדיר זום קרוב
+            mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
         }
 
         function teleportTo(x, y, z, rotationY) {
@@ -146,9 +164,9 @@
 
         function resetPosition() {
             teleportTo(0, 0, 0, 0);
+            updateGoogleMap(CENTER_LAT, CENTER_LNG);
         }
 
-        // הפעלת הטעינה האוטומטית ברגע שהדף מוכן
         window.addEventListener('DOMContentLoaded', loadCampData);
     </script>
 </body>
