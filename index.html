@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KL Plaszow - Direct KML AR Simulator</title>
+    <title>KL Plaszow - Desktop & Mobile AR Simulator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; user-select: none; }
         
         .toggle-ui-btn {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -20,7 +20,7 @@
             position: absolute; top: 15px; right: 15px;
             background: rgba(15, 15, 15, 0.85); color: #f0f0f0;
             padding: 12px; border-radius: 8px; z-index: 999;
-            max-width: 250px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            max-width: 240px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             direction: rtl; border-right: 4px solid #cc0000;
             font-size: 11px;
         }
@@ -38,22 +38,21 @@
         
         .nav-btn {
             display: block; width: 100%; background: #2b2b2b; color: #fff;
-            border: 1px solid #3c3c3c; padding: 6px 10px; margin-bottom: 4px;
+            border: 1px solid #3c3c3c; padding: 8px 10px; margin-bottom: 4px;
             border-radius: 4px; cursor: pointer; text-align: right;
-            font-size: 11px;
+            font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .nav-btn:hover { background: #3a3a3a; color: #00aaff; }
         .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 8px; border: none; text-align: center; }
 
         .map-container {
             position: absolute; bottom: 85px; right: 15px;
-            width: 150px; height: 110px;
+            width: 140px; height: 105px;
             background: rgba(15, 15, 15, 0.85);
             border-radius: 6px; border: 2px solid #0088cc;
             z-index: 999; overflow: hidden;
         }
         .map-container iframe { width: 100%; height: 100%; border: none; }
-
         .ui-hidden { opacity: 0 !important; pointer-events: none !important; transform: translateY(-10px); }
     </style>
 </head>
@@ -62,12 +61,12 @@
     <button class="toggle-ui-btn" onclick="toggleUserInterface()">👁️ הסתר/הראה תפריטים</button>
 
     <div id="hud-id" class="hud-panel">
-        <h1>סימולטור פלאשוב KML ישיר</h1>
-        <p>הקוד קורא ומציג את כל עשרות המבנים והגדרות ישירות מקובץ ה-KML הגולמי של המוזיאון.</p>
+        <h1>סימולטור פלאשוב KML</h1>
+        <p>צבוט את המסך עם שתי אצבעות כדי לבצע זום (Zoom) פנימה והחוצה.</p>
     </div>
 
     <div id="nav-id" class="nav-panel">
-        <h2>מוקדי עניין (KML)</h2>
+        <h2>מוקדי עניין ושמות צריפים</h2>
         <div id="dynamic-buttons"></div>
         <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס מבט (Reset)</button>
     </div>
@@ -94,6 +93,11 @@
         const CENTER_LAT = 50.033036;
         const CENTER_LNG = 19.966311;
         let uiVisible = true;
+        
+        // משתנים לניהול זום באמצעות מגע (Pinch Zoom)
+        let baseScale = 1;
+        let currentZOffset = -4;
+        let initialTouchDist = 0;
 
         function toggleUserInterface() {
             uiVisible = !uiVisible;
@@ -108,32 +112,48 @@
             return { x: lngDistance * 0.08, z: -latDistance * 0.08 };
         }
 
-        // קריאה ופירוק ישיר של קובץ ה-KML
+        // פונקציה חכמה לאיתור השם מכל תגית אפשרית ב-KML
+        function extractPlacemarkName(placemarkElement, fallbackIndex) {
+            // בדיקה 1: תגית name סטנדרטית
+            const nameNode = placemarkElement.getElementsByTagName("name")[0];
+            if (nameNode && nameNode.textContent.trim()) {
+                return nameNode.textContent.trim();
+            }
+            
+            // בדיקה 2: חיפוש בתוך תגיות Data / SimpleData של גוגל מפות
+            const simpleDataNodes = placemarkElement.getElementsByTagName("SimpleData");
+            for (let j = 0; j < simpleDataNodes.length; j++) {
+                const attrName = simpleDataNodes[j].getAttribute("name");
+                if (attrName && (attrName.toLowerCase().includes("nazwa") || attrName.toLowerCase().includes("name"))) {
+                    if (simpleDataNodes[j].textContent.trim()) {
+                        return simpleDataNodes[j].textContent.trim();
+                    }
+                }
+            }
+            
+            return `מבנה ${fallbackIndex}`;
+        }
+
         async function parseAndLoadKML() {
             try {
                 const response = await fetch('plaszow.kml');
                 const kmlText = await response.text();
                 
-                // הפיכת הטקסט למבנה XML קריא ל-JS
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(kmlText, "text/xml");
-                
                 const placemarks = xmlDoc.getElementsByTagName("Placemark");
+                
                 const modelCluster = document.getElementById('camp-model-cluster');
                 const btnContainer = document.getElementById('dynamic-buttons');
-                
                 let buttonCount = 0;
 
                 for (let i = 0; i < placemarks.length; i++) {
                     const pm = placemarks[i];
-                    const nameNode = pm.getElementsByTagName("name")[0];
-                    const name = nameNode ? nameNode.textContent : `מבנה ${i+1}`;
+                    const name = extractPlacemarkName(pm, i + 1);
                     
-                    // בדיקה אם יש קואורדינטות (בפוליגון, קו או נקודה)
                     const coordNode = pm.getElementsByTagName("coordinates")[0];
                     if (!coordNode) continue;
                     
-                    // חילוץ זוג הקואורדינטות הראשון לצורך מיקום האובייקט
                     const rawCoords = coordNode.textContent.trim().split(/\s+/)[0];
                     const parts = rawCoords.split(",");
                     if (parts.length < 2) continue;
@@ -142,21 +162,19 @@
                     const lat = parseFloat(parts[1]);
                     const local = geodeticToLocalScale(lat, lng);
                     
-                    // קביעת צבע וסוג לפי טקסט השם (למשל גדרות מול צריפים)
-                    let color = "#8d6e63"; // חום דיפולטיבי לצריף
+                    let color = "#8d6e63"; 
                     let size = { w: 0.5, h: 0.25, d: 0.4 };
                     let isFence = false;
 
                     if (name.toLowerCase().includes("ogrodzen") || name.toLowerCase().includes("fence")) {
-                        color = "#ff3333"; // אדום לגדר
-                        size = { w: 0.08, h: 0.5, d: 0.08 };
+                        color = "#ff3333";
+                        size = { w: 0.06, h: 0.4, d: 0.06 };
                         isFence = true;
                     } else if (name.toLowerCase().includes("dom") || name.toLowerCase().includes("house") || name.toLowerCase().includes("biuro")) {
-                        color = "#555566"; // אפור למבני אבן/מינהלה
-                        size = { w: 0.8, h: 0.4, d: 0.8 };
+                        color = "#555566";
+                        size = { w: 0.7, h: 0.35, d: 0.7 };
                     }
 
-                    // יצירת האובייקט בתלת ממד
                     const entity = document.createElement('a-entity');
                     entity.setAttribute('id', `kml-obj-${i}`);
                     entity.setAttribute('position', `${local.x} 0 ${local.z}`);
@@ -168,12 +186,11 @@
                     box.setAttribute('material', `color: ${color}; opacity: 0.85;`);
                     entity.appendChild(box);
                     
-                    // הוספת טקסט צף (רק למבנים מרכזיים כדי לא להעמיס)
                     if (!isFence && buttonCount < 15) {
                         const text = document.createElement('a-text');
                         text.setAttribute('value', name.split('/')[0].substring(0, 20));
                         text.setAttribute('align', 'center');
-                        text.setAttribute('position', `0 ${size.h + 0.2} 0`);
+                        text.setAttribute('position', `0 ${size.h + 0.15} 0`);
                         text.setAttribute('scale', '0.4 0.4 0.4');
                         text.setAttribute('color', '#ffffff');
                         text.setAttribute('side', 'double');
@@ -182,28 +199,27 @@
                     
                     modelCluster.appendChild(entity);
                     
-                    // הוספת כפתור ניווט מהיר למקרא (נמנע מהצפת המסך בגדרות)
                     if (!isFence && buttonCount < 12) {
                         const btn = document.createElement('button');
                         btn.className = 'nav-btn';
+                        // הזרקת השם שחולץ בצורה תקינה ישירות לכפתור
                         btn.innerHTML = `📍 ${name.split('/')[0]}`;
                         btn.onclick = () => focusOnTarget(local.x, local.z, lat, lng, `kml-obj-${i}`, color);
                         btnContainer.appendChild(btn);
                         buttonCount++;
                     }
                 }
-                console.log(`Successfully parsed KML. Rendered ${placemarks.length} elements.`);
             } catch (err) {
-                console.error("KML direct parsing failure:", err);
+                console.error("KML loading error:", err);
             }
         }
 
         function focusOnTarget(localX, localZ, lat, lng, entityId, originalColor) {
             const cluster = document.getElementById('camp-model-cluster');
-            cluster.setAttribute('animation', `property: position; to: ${-localX} -1.4 ${-4 - localZ}; dur: 800; easing: easeOutQuad`);
+            currentZOffset = -4 - localZ;
+            cluster.setAttribute('animation', `property: position; to: ${-localX} -1.4 ${currentZOffset}; dur: 800; easing: easeOutQuad`);
             
-            const mapFrame = document.getElementById('google-map-frame');
-            mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&output=embed`;
+            document.getElementById('google-map-frame').src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&output=embed`;
             
             const box = document.getElementById(entityId).querySelector('a-box');
             box.setAttribute('material', 'color', '#ffdd00');
@@ -211,9 +227,47 @@
         }
 
         function resetPosition() {
+            currentZOffset = -4;
             document.getElementById('camp-model-cluster').setAttribute('position', '0 -1.4 -4');
             document.getElementById('google-map-frame').src = `https://maps.google.com/maps?q=${CENTER_LAT},${CENTER_LNG}&t=k&z=17&output=embed`;
         }
+
+        // --- לוגיקת צביטה עבור זום (Pinch to Zoom) במסכי מגע ---
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialTouchDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialTouchDist > 0) {
+                const currentDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const diff = currentDist / initialTouchDist;
+                
+                // שינוי עומק המיקום (Z) בהתאם למרחק הצביטה
+                const cluster = document.getElementById('camp-model-cluster');
+                const currentPos = cluster.getAttribute('position');
+                
+                let newZ = currentZOffset + (diff - 1) * 3;
+                newZ = Math.max(-15, Math.min(-1, newZ)); // הגבלת טווח הזום שלא יברח
+                
+                cluster.setAttribute('position', `${currentPos.x} ${currentPos.y} ${newZ}`);
+            }
+        });
+
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                const cluster = document.getElementById('camp-model-cluster');
+                currentZOffset = cluster.getAttribute('position').z;
+                initialTouchDist = 0;
+            }
+        });
 
         window.addEventListener('DOMContentLoaded', parseAndLoadKML);
     </script>
