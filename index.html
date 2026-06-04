@@ -3,82 +3,98 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KL Plaszow - Map Integrated AR Platform</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+    <title>KL Plaszow - Live AR Platform</title>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; }
         
-        /* פאנל ימני */
+        /* כפתור הסתרה/הצגה צף - מותאם במיוחד לנייד */
+        .toggle-ui-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            background: #ff3333; color: white; border: none;
+            padding: 12px 20px; font-weight: bold; border-radius: 30px;
+            cursor: pointer; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-size: 14px; direction: rtl;
+        }
+
+        /* פאנל ימני - הסברים */
         .hud-panel {
             position: absolute; top: 15px; right: 15px;
             background: rgba(20, 20, 20, 0.9); color: #f0f0f0;
             padding: 15px; border-radius: 8px; z-index: 999;
-            max-width: 300px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            max-width: 280px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             direction: rtl; border-right: 4px solid #cc0000;
+            transition: opacity 0.3s, transform 0.3s;
         }
-        .hud-panel h1 { margin: 0 0 5px 0; font-size: 16px; color: #ff3333; }
-        .hud-panel p { margin: 0; font-size: 12px; line-height: 1.4; color: #ccc; }
         
         /* פאנל שמאלי - ניווט */
         .nav-panel {
             position: absolute; top: 15px; left: 15px;
             background: rgba(25, 25, 25, 0.95); color: #fff;
             padding: 15px; border-radius: 8px; z-index: 999;
-            width: 280px; max-height: 40vh; overflow-y: auto;
+            width: 260px; max-height: 45vh; overflow-y: auto;
             box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             direction: rtl; border-left: 4px solid #0088cc;
+            transition: opacity 0.3s, transform 0.3s;
         }
         .nav-panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #00aaff; }
         
         .nav-btn {
             display: block; width: 100%; background: #333; color: #fff;
-            border: 1px solid #444; padding: 8px; margin-bottom: 6px;
+            border: 1px solid #444; padding: 10px; margin-bottom: 6px;
             border-radius: 4px; cursor: pointer; text-align: right;
-            font-size: 12px; transition: background 0.2s;
+            font-size: 12px;
         }
-        .nav-btn:hover { background: #444; color: #00aaff; }
         .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 10px; border: none; text-align: center; }
 
-        /* פאנל תחתון שמאלי - הטמעת גוגל מפות חיות */
+        /* פאנל מפה */
         .map-container {
-            position: absolute; bottom: 15px; left: 15px;
-            width: 280px; height: 220px;
+            position: absolute; bottom: 80px; left: 15px;
+            width: 200px; height: 150px;
             background: rgba(20, 20, 20, 0.9);
             border-radius: 8px; border: 2px solid #0088cc;
             z-index: 999; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            transition: opacity 0.3s, transform 0.3s;
         }
         .map-container iframe { width: 100%; height: 100%; border: none; }
+
+        /* קלאס להסתרת ה-UI */
+        .ui-hidden {
+            opacity: 0 !important;
+            transform: translateY(-20px) !important;
+            pointer-events: none !important;
+        }
+        .map-hidden {
+            opacity: 0 !important;
+            transform: translateY(20px) !important;
+            pointer-events: none !important;
+        }
     </style>
 </head>
 <body>
 
-    <div class="hud-panel">
-        <h1>מערך פלאשוב AR דינמי + מפה</h1>
-        <p>שחזור תלת-ממדי. לחיצה על מבנה תנווט אותך במרחב ותציג את מיקומו הריאלי על מפת הלוויין של גוגל למטה.</p>
+    <button class="toggle-ui-btn" onclick="toggleUserInterface()">👁️ הסתר/הראה תפריטים</button>
+
+    <div id="hud-id" class="hud-panel">
+        <h1>פלאשוב AR - הגרסה המלאה</h1>
+        <p>בשטח: המצלמה תראה את המציאות והצריפים יופיעו עליה.<br>מהבית: השתמש במקשים או בכפתורים לניווט.</p>
     </div>
 
-    <div class="nav-panel">
-        <h2>רשימת מבנים (קפיצה מהירה)</h2>
+    <div id="nav-id" class="nav-panel">
+        <h2>רשימת מבנים והנצחה</h2>
         <div id="dynamic-buttons"></div>
-        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס נקודת התחלה (Reset)</button>
+        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס (Reset)</button>
     </div>
 
-    <div class="map-container">
-        <iframe id="google-map-frame" 
-                src="https://maps.google.com/maps?q=50.033036,19.966311&t=k&z=17&output=embed">
-        </iframe>
+    <div id="map-id" class="map-container">
+        <iframe id="google-map-frame" src="https://maps.google.com/maps?q=50.033036,19.966311&t=k&z=17&output=embed"></iframe>
     </div>
 
-    <a-scene embedded vr-mode-ui="enabled: false" style="height: 100vh; width: 100vw;">
-        <a-sky color="#13131a"></a-sky>
-        <a-plane position="0 0 0" rotation="-90 0 0" width="500" height="500" color="#22222b"></a-plane>
-
-        <a-entity light="type: ambient; color: #ffffff; intensity: 0.9;"></a-entity>
-        <a-entity light="type: directional; color: #ffffff; intensity: 0.5" position="-1 4 2"></a-entity>
-
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false" style="height: 100vh; width: 100vw;">
+        
         <a-entity id="rig" position="0 0 0">
-            <a-camera id="main-camera" look-controls wasd-controls="acceleration: 50;"></a-camera>
+            <a-camera id="main-camera" gps-camera rotation-reader look-controls wasd-controls="acceleration: 50;"></a-camera>
         </a-entity>
 
         <a-entity id="camp-structures"></a-entity>
@@ -87,6 +103,15 @@
     <script>
         const CENTER_LAT = 50.033036;
         const CENTER_LNG = 19.966311;
+        let uiVisible = true;
+
+        // פונקציה להסתרת והצגת ה-UI בלחיצת כפתור אחת
+        function toggleUserInterface() {
+            uiVisible = !uiVisible;
+            document.getElementById('hud-id').classList.toggle('ui-hidden', !uiVisible);
+            document.getElementById('nav-id').classList.toggle('ui-hidden', !uiVisible);
+            document.getElementById('map-id').classList.toggle('map-hidden', !uiVisible);
+        }
 
         function geodeticToLocal(lat, lng) {
             const latDistance = (lat - CENTER_LAT) * 111139; 
@@ -105,48 +130,45 @@
                 structures.forEach((item) => {
                     const localCoords = geodeticToLocal(item.lat, item.lng);
                     
-                    // בניית המבנה בתלת ממד
                     const entity = document.createElement('a-entity');
+                    // תמיכת דו-נתיבית: מציב מיקום תלת ממדי לסימולטור, ומצמיד רכיב GPS עבור השטח האמיתי
                     entity.setAttribute('position', `${localCoords.x} 0 ${localCoords.z}`);
+                    entity.setAttribute('gps-entity-place', `latitude: ${item.lat}; longitude: ${item.lng};`);
                     
                     const box = document.createElement('a-box');
                     box.setAttribute('width', item.scale.w);
                     box.setAttribute('height', item.scale.h);
                     box.setAttribute('depth', item.scale.d);
-                    box.setAttribute('material', `color: ${item.color}; opacity: 0.85;`);
+                    box.setAttribute('material', `color: ${item.color}; opacity: 0.8;`);
                     entity.appendChild(box);
                     
                     const text = document.createElement('a-text');
                     text.setAttribute('value', item.name);
                     text.setAttribute('align', 'center');
                     text.setAttribute('position', `0 ${item.scale.h + 1} 0`);
-                    text.setAttribute('scale', '1.8 1.8 1.8');
+                    text.setAttribute('scale', '2 2 2');
                     text.setAttribute('color', '#ffffff');
                     text.setAttribute('side', 'double');
                     entity.appendChild(text);
                     
                     container.appendChild(entity);
                     
-                    // בניית הכפתור שמנווט גם בתלת ממד וגם מעדכן את הגוגל מפות
                     const btn = document.createElement('button');
                     btn.className = 'nav-btn';
                     btn.innerHTML = `📍 ${item.name}`;
                     btn.onclick = () => {
-                        // 1. קפיצה במרחב התלת ממדי
-                        teleportTo(localCoords.x, 0, localCoords.z + 12, 0);
-                        // 2. עדכון חלון הגוגל מפות לקואורדינטות הלוויין של המבנה הספציפי
+                        teleportTo(localCoords.x, 0, localCoords.z + 15, 0);
                         updateGoogleMap(item.lat, item.lng);
                     };
                     btnContainer.appendChild(btn);
                 });
             } catch (error) {
-                console.error("Error loading data:", error);
+                console.error("Error configuration:", error);
             }
         }
 
         function updateGoogleMap(lat, lng) {
             const mapFrame = document.getElementById('google-map-frame');
-            // t=k מגדיר מצב לוויין (Satellite), z=18 מגדיר זום קרוב
             mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
         }
 
@@ -157,7 +179,6 @@
                 rig.setAttribute('position', x + ' ' + y + ' ' + z);
                 if(camera.components['look-controls']) {
                     camera.components['look-controls'].yawTurn = rotationY * Math.PI / 180;
-                    camera.components['look-controls'].pitchTurn = 0;
                 }
             }
         }
