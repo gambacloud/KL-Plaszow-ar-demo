@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>KL Plaszow - Desktop AR Simulator</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; }
         
-        /* פאנל הסבר ימני */
+        /* פאנל מדריך ימני */
         .hud-panel {
             position: absolute; top: 15px; right: 15px;
             background: rgba(20, 20, 20, 0.9); color: #f0f0f0;
@@ -23,7 +23,7 @@
             font-size: 12px; color: #ffdd00; font-family: monospace;
         }
 
-        /* פאנל ניווט ומקרא שמאלי */
+        /* פאנל ניווט שמאלי */
         .nav-panel {
             position: absolute; top: 15px; left: 15px;
             background: rgba(25, 25, 25, 0.95); color: #fff;
@@ -43,81 +43,73 @@
             background: #cc0000; color: white; font-weight: bold;
             margin-top: 15px; border: none; text-align: center;
         }
-        .reset-btn:hover { background: #ff3333; color: white; }
     </style>
 </head>
 <body>
 
     <div class="hud-panel">
         <h1>סימולטור פלאשוב AR</h1>
-        <p>הדמיית המרחב ההיסטורי על בסיס נתוני המוזיאון ומפות 1944.</p>
+        <p>אם המסך עדיין ריק, לחץ וגרור את העכבר כדי לסובב את המבט - המבנים ממוקמים מסביבך.</p>
         <div class="controls-guide">
-            <strong>מערכת שליטה ידנית:</strong><br>
-            • סיבוב מבט: גרירה עם העכבר על המסך<br>
-            • תנועה בשטח: מקשי החצים או W, A, S, D
+            <strong>שליטה:</strong> עכבר לסיבוב המבט, מקשי WASD או חיצים לתנועה.
         </div>
     </div>
 
     <div class="nav-panel">
-        <h2>מקרא וקפיצה למבנה</h2>
-        <button class="nav-btn" onclick="teleportTo(0, 1.6, -10, 0)">🏠 קח אותי אל: הבית האפור</button>
-        <button class="nav-btn" onclick="teleportTo(15, 1.6, -5, -45)">🏢 קח אותי אל: משרדי המינהלת</button>
-        <button class="nav-btn" onclick="teleportTo(-15, 1.6, 0, 45)">🪵 קח אותי אל: צריף הגברים (Barracks)</button>
-        
-        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס נקודת התחלה (Reset)</button>
+        <h2>מקרא וניווט מהיר</h2>
+        <button class="nav-btn" onclick="teleportTo(0, 0, -10, 0)">🏠 קח אותי אל: הבית האפור</button>
+        <button class="nav-btn" onclick="teleportTo(25, 0, -5, -60)">🏢 קח אותי אל: משרדי המינהלת</button>
+        <button class="nav-btn" onclick="teleportTo(-25, 0, 0, 60)">🪵 קח אותי אל: צריף הגברים</button>
+        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס מיקום (Reset)</button>
     </div>
 
-    <a-scene embedded vr-mode-ui="enabled: false">
+    <a-scene vr-mode-ui="enabled: false" embedded style="height: 100vh; width: 100vw;">
         
         <a-sky color="#1a1a24"></a-sky>
-        <a-plane position="0 0 0" rotation="-90 0 0" width="200" height="200" color="#222233"></a-plane>
+        
+        <a-plane position="0 0 0" rotation="-90 0 0" width="300" height="300" color="#2c2c38"></a-plane>
 
-        <a-entity light="type: ambient; color: #ffffff; intensity: 0.8;"></a-entity>
-        <a-entity light="type: directional; color: #ffffff; intensity: 0.4" position="-1 2 1"></a-entity>
+        <a-entity light="type: ambient; color: #ffffff; intensity: 0.9;"></a-entity>
+        <a-entity light="type: directional; color: #ffffff; intensity: 0.5" position="-1 4 2"></a-entity>
 
-        <a-entity id="rig" position="0 1.6 0">
+        <a-entity id="rig" position="0 0 0">
             <a-camera id="main-camera" look-controls wasd-controls="acceleration: 50;"></a-camera>
         </a-entity>
 
         <a-entity position="0 0 -15">
-            <a-box scale="10 5 10" material="color: #555566; opacity: 0.9;"></a-box>
-            <a-text value="Szary dom\n(The Grey House)" align="center" position="0 3.5 0" scale="2 2 2" color="#ffffff" side="double"></a-text>
+            <a-box width="10" height="5" depth="10" color="#555566" opacity="0.9"></a-box>
+            <a-text value="Szary dom\n(The Grey House)" align="center" position="0 4 0" scale="2 2 2" color="#ffffff" side="double"></a-text>
         </a-entity>
 
         <a-entity position="25 0 -10">
-            <a-box scale="12 3.5 8" material="color: #993333; opacity: 0.8;"></a-box>
-            <a-text value="Camp Administration" align="center" position="0 2.5 0" scale="1.5 1.5 1.5" color="#ffffff" side="double"></a-text>
+            <a-box width="12" height="3.5" depth="8" color="#993333" opacity="0.8"></a-box>
+            <a-text value="Camp Administration" align="center" position="0 3 0" scale="1.5 1.5 1.5" color="#ffffff" side="double"></a-text>
         </a-entity>
 
         <a-entity position="-25 0 -5">
-            <a-box scale="15 3.2 6" material="color: #8d6e63; opacity: 0.8;"></a-box>
-            <a-text value="Men's Barracks" align="center" position="0 2.2 0" scale="1.5 1.5 1.5" color="#ffffff" side="double"></a-text>
+            <a-box width="15" height="3.2" depth="6" color="#8d6e63" opacity="0.8"></a-box>
+            <a-text value="Men's Barracks" align="center" position="0 2.5 0" scale="1.5 1.5 1.5" color="#ffffff" side="double"></a-text>
         </a-entity>
 
     </a-scene>
 
     <script>
-        // פונקציה שמקבלת קואורדינטות תלת-ממדיות וזווית מבט, ומקפיצה את המשתמש לשם
+        // פונקציית הניווט המשודרגת שעובדת עם גבהים מאופסים לבטיחות
         function teleportTo(x, y, z, rotationY) {
             const rig = document.getElementById('rig');
             const camera = document.getElementById('main-camera');
-            
-            // שינוי מיקום הריג (הרגליים של המשתמש)
-            rig.setAttribute('position', `${x} ${y} ${z}`);
-            
-            // איפוס ושינוי זווית המבט של המצלמה (הראש של המשתמש) לטובת המבנה הנבחר
-            camera.components['look-controls'].yawTurn = rotationY * Math.PI / 180;
-            camera.components['look-controls'].pitchTurn = 0;
+            if(rig && camera) {
+                rig.setAttribute('position', x + ' ' + y + ' ' + z);
+                if(camera.components['look-controls']) {
+                    camera.components['look-controls'].yawTurn = rotationY * Math.PI / 180;
+                    camera.components['look-controls'].pitchTurn = 0;
+                }
+            }
         }
 
-        // פונקציית האיפוס שמחזירה את המשתמש בדיוק לנקודת ההתחלה המקורית
         function resetPosition() {
-            teleportTo(0, 1.6, 0, 0);
+            teleportTo(0, 0, 0, 0);
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log("Plaszow AR Interactive Navigation Simulator Active.");
-        });
     </script>
 </body>
 </html>
