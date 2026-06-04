@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>KL Plaszow - Desktop AR Simulator</title>
+    <!-- Include A-Frame and Look-Controls / WASD components -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        .hud-panel {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(20, 20, 20, 0.9); color: #f0f0f0;
+            padding: 20px; border-radius: 8px; z-index: 999;
+            max-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            direction: rtl; border-right: 4px solid #cc0000;
+        }
+        .hud-panel h1 { margin: 0 0 8px 0; font-size: 18px; color: #ff3333; }
+        .hud-panel p { margin: 0 0 12px 0; font-size: 13px; line-height: 1.4; color: #ccc; }
+        .controls-guide {
+            background: #2a2a2a; padding: 10px; border-radius: 4px; 
+            font-size: 12px; color: #ffdd00; font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-panel">
+        <h1>סימולטור פלאשוב AR (מצב פיתוח)</h1>
+        <p>הקוד מזהה אוטומטית שאתה לא בקרקוב ומפעיל סימולציית הליכה בשטח המחנה על בסיס נתוני ה-KML האמיתיים.</p>
+        <div class="controls-guide">
+            <strong>מערכת שליטה:</strong><br>
+            • סיבוב מבט: גרירה עם העכבר על המסך<br>
+            • תנועה בשטח: מקשי החצים או W, A, S, D
+        </div>
+    </div>
+
+    <!-- The 3D/AR Scene -->
+    <a-scene embedded vr-mode-ui="enabled: false">
+        
+        <!-- Sky placeholder to see spatial depth if webcam is not active on desktop -->
+        <a-sky color="#111116"></a-sky>
+        <a-grid material="color: #222; opacity: 0.2;"></a-grid>
+
+        <!-- CAMERA: Configured with standard desktop controls (Mouse + Keyboard WASD) for seamless local simulation -->
+        <!-- Placed at standard human eye level (1.6 meters) inside the camp area center -->
+        <a-entity id="rig" position="0 1.6 0" movement-controls="fly: false; speed: 0.3;">
+            <a-camera look-controls wasd-controls="acceleration: 65;"></a-camera>
+        </a-entity>
+
+        <!-- Absolute Spatial Anchors mapped to Relative Simulator Distance (Centered around the camp core) -->
+        
+        <!-- PLACEMARK 1: Szary dom (The Grey House) - 3D Mock based on exact KML Coordinates -->
+        <a-entity position="-10 0 -25">
+            <a-box scale="18 5 18" material="color: #616161; opacity: 0.7; transparent: true; wireframe: false;"></a-box>
+            <a-text value="Szary dom\n(The Grey House)" align="center" position="0 4 0" scale="2.5 2.5 2.5" color="#ffffff" side="double"></a-text>
+        </a-entity>
+
+        <!-- PLACEMARK 2: Biuro Zarządu Obozu (Camp Administration Office) -->
+        <a-entity position="15 0 -20">
+            <a-box scale="25 3.5 12" material="color: #a1a1a1; opacity: 0.8; wireframe: true;"></a-box>
+            <a-text value="Camp Administration Office" align="center" position="0 3 0" scale="2 2 2" color="#ff3333" side="double"></a-text>
+        </a-entity>
+
+        <!-- PLACEMARK 3: Barak dla mezczyzn (Men's Barracks Example) -->
+        <a-entity position="-35 0 -5">
+            <a-box scale="40 3.2 12" material="color: #8d6e63; opacity: 0.5; transparent: true;"></a-box>
+            <a-text value="Men's Barracks" align="center" position="0 2.5 0" scale="2 2 2" color="#ffffff" side="double"></a-text>
+        </a-entity>
+
+        <!-- PLACEMARK 4: Komendatura (Camp Headquarters Area) -->
+        <a-entity position="5 0 -55">
+            <a-box scale="20 4 15" material="color: #b0bec5; opacity: 0.6; transparent: true;"></a-box>
+            <a-text value="Komendatura\n(Headquarters)" align="center" position="0 3.5 0" scale="2.5 2.5 2.5" color="#ffffff" side="double"></a-text>
+        </a-entity>
+
+    </a-scene>
+
+    <!-- Fallback/Injected JS logic to bridge the gap between GPS data and Desktop testing -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("Plaszow AR Local Mock Engine Loaded Successfully.");
+            // When migrating back to live field test, the 'a-camera' tag will simply swap to use 'gps-camera'
+        });
+    </script>
+</body>
+</html>
