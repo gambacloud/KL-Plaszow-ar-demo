@@ -1,0 +1,56 @@
+[
+  {
+    "name": "Szary dom / The Grey House",
+    "description": "Karolina Lanckorońska's villa, later used as camp prison and torture site.",
+    "lat": 50.033036,
+    "lng": 19.966311,
+    "type": "historic_building",
+    "scale": {"w": 15, "h": 6, "d": 15},
+    "color": "#4a4a5a"
+  },
+  {
+    "name": "Biuro zarządu obozu / Camp Administration",
+    "description": "Main administrative office managing inmate registries and labor allocation.",
+    "lat": 50.032652,
+    "lng": 19.966170,
+    "type": "administration",
+    "scale": {"w": 25, "h": 4, "d": 12},
+    "color": "#993333"
+  },
+  {
+    "name": "Komendatura / Camp Headquarters",
+    "description": "Ameth Goeth's official command villa overlooking the lower execution grounds.",
+    "lat": 50.034749,
+    "lng": 19.965687,
+    "type": "hq",
+    "scale": {"w": 22, "h": 5, "d": 18},
+    "color": "#5c6bc0"
+  },
+  {
+    "name": "Barak dla mężczyzn / Men's Barracks (M1)",
+    "description": "Standard wooden living quarters for male forced laborers.",
+    "lat": 50.032352,
+    "lng": 19.962173,
+    "type": "barracks",
+    "scale": {"w": 40, "h": 3.2, "d": 12},
+    "color": "#8d6e63"
+  },
+  {
+    "name": "Barak עבור קבוצת Balba / Clothing Warehouse",
+    "description": "Storage unit for confiscated civilian personal belongings and clothing processing.",
+    "lat": 50.031950,
+    "lng": 19.963100,
+    "type": "warehouse",
+    "scale": {"w": 35, "h": 3.2, "d": 12},
+    "color": "#a1887f"
+  },
+  {
+    "name": "Wielka żydowska nekropolia / Jewish Cemetery",
+    "description": "The historic ruined pre-war cemetery destroyed during camp expansion.",
+    "lat": 50.031200,
+    "lng": 19.965100,
+    "type": "cemetery",
+    "scale": {"w": 50, "h": 0.2, "d": 50},
+    "color": "#2e7d32"
+  }
+]
