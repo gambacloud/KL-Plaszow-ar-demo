@@ -3,101 +3,103 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KL Plaszow - Live AR Platform</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <title>KL Plaszow - Interactive AR Hologram</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; }
         
-        /* כפתור הסתרה/הצגה צף - מותאם במיוחד לנייד */
+        /* כפתור הסתרה/הצגה צף בתחתית - מעוצב מחדש שלא יתנגש */
         .toggle-ui-btn {
-            position: absolute; bottom: 20px; right: 20px;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: #ff3333; color: white; border: none;
-            padding: 12px 20px; font-weight: bold; border-radius: 30px;
-            cursor: pointer; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            font-size: 14px; direction: rtl;
+            padding: 14px 28px; font-weight: bold; border-radius: 30px;
+            cursor: pointer; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-size: 14px; direction: rtl; letter-spacing: 0.5px;
         }
 
-        /* פאנל ימני - הסברים */
+        /* פאנל עליון ימני - תיאור קומפקטי למניעת הסתרה */
         .hud-panel {
             position: absolute; top: 15px; right: 15px;
-            background: rgba(20, 20, 20, 0.9); color: #f0f0f0;
-            padding: 15px; border-radius: 8px; z-index: 999;
-            max-width: 280px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            background: rgba(15, 15, 15, 0.85); color: #f0f0f0;
+            padding: 12px 18px; border-radius: 8px; z-index: 999;
+            max-width: 260px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             direction: rtl; border-right: 4px solid #cc0000;
-            transition: opacity 0.3s, transform 0.3s;
+            font-size: 12px; transition: all 0.3s ease;
         }
+        .hud-panel h1 { margin: 0 0 4px 0; font-size: 15px; color: #ff3333; }
         
-        /* פאנל שמאלי - ניווט */
+        /* פאנל עליון שמאלי - תפריט מקופל ואלגנטי */
         .nav-panel {
             position: absolute; top: 15px; left: 15px;
-            background: rgba(25, 25, 25, 0.95); color: #fff;
+            background: rgba(20, 20, 20, 0.9); color: #fff;
             padding: 15px; border-radius: 8px; z-index: 999;
-            width: 260px; max-height: 45vh; overflow-y: auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            width: 240px; max-height: 35vh; overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             direction: rtl; border-left: 4px solid #0088cc;
-            transition: opacity 0.3s, transform 0.3s;
+            transition: all 0.3s ease;
         }
-        .nav-panel h2 { margin: 0 0 10px 0; font-size: 15px; color: #00aaff; }
+        .nav-panel h2 { margin: 0 0 8px 0; font-size: 14px; color: #00aaff; }
         
         .nav-btn {
-            display: block; width: 100%; background: #333; color: #fff;
-            border: 1px solid #444; padding: 10px; margin-bottom: 6px;
+            display: block; width: 100%; background: #2b2b2b; color: #fff;
+            border: 1px solid #3c3c3c; padding: 8px 12px; margin-bottom: 5px;
             border-radius: 4px; cursor: pointer; text-align: right;
-            font-size: 12px;
+            font-size: 11px; transition: background 0.2s;
         }
-        .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 10px; border: none; text-align: center; }
+        .nav-btn:hover { background: #3a3a3a; color: #00aaff; }
+        .reset-btn { background: #cc0000; color: white; font-weight: bold; margin-top: 8px; border: none; text-align: center; }
 
-        /* פאנל מפה */
+        /* פאנל מפה מוקטן - ממוקם בפינה למטה שלא יפריע לחוויה הויזואלית */
         .map-container {
-            position: absolute; bottom: 80px; left: 15px;
-            width: 200px; height: 150px;
-            background: rgba(20, 20, 20, 0.9);
-            border-radius: 8px; border: 2px solid #0088cc;
+            position: absolute; bottom: 85px; right: 15px;
+            width: 160px; height: 120px;
+            background: rgba(15, 15, 15, 0.85);
+            border-radius: 6px; border: 2px solid #0088cc;
             z-index: 999; overflow: hidden;
-            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
         }
         .map-container iframe { width: 100%; height: 100%; border: none; }
 
-        /* קלאס להסתרת ה-UI */
-        .ui-hidden {
-            opacity: 0 !important;
-            transform: translateY(-20px) !important;
-            pointer-events: none !important;
-        }
-        .map-hidden {
-            opacity: 0 !important;
-            transform: translateY(20px) !important;
-            pointer-events: none !important;
-        }
+        /* קלאסים להסתרה מלאה של ה-UI */
+        .ui-hidden { opacity: 0 !important; transform: translateY(-10px) !important; pointer-events: none !important; }
+        .map-hidden { opacity: 0 !important; transform: translateY(10px) !important; pointer-events: none !important; }
     </style>
 </head>
 <body>
 
-    <button class="toggle-ui-btn" onclick="toggleUserInterface()">👁️ הסתר/הראה תפריטים</button>
+    <button class="toggle-ui-btn" onclick="toggleUserInterface()">👁️ שנה תצוגה (הסתר/הראה)</button>
 
     <div id="hud-id" class="hud-panel">
-        <h1>פלאשוב AR - הגרסה המלאה</h1>
-        <p>בשטח: המצלמה תראה את המציאות והצריפים יופיעו עליה.<br>מהבית: השתמש במקשים או בכפתורים לניווט.</p>
+        <h1>הולוגרמת פלאשוב תלת-ממדית</h1>
+        <p>מודל אינטראקטיבי של המחנה מ-1944. הזז את האצבע על המסך כדי לסובב את המודל בתוך החדר.</p>
     </div>
 
     <div id="nav-id" class="nav-panel">
-        <h2>רשימת מבנים והנצחה</h2>
+        <h2>מוקדי זיכרון ומבנים</h2>
         <div id="dynamic-buttons"></div>
-        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס (Reset)</button>
+        <button class="nav-btn reset-btn" onclick="resetPosition()">🔄 איפוס מבט (Reset)</button>
     </div>
 
     <div id="map-id" class="map-container">
         <iframe id="google-map-frame" src="https://maps.google.com/maps?q=50.033036,19.966311&t=k&z=17&output=embed"></iframe>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false" style="height: 100vh; width: 100vw;">
+    <a-scene embedded vr-mode-ui="enabled: false" style="height: 100vh; width: 100vw;">
         
-        <a-entity id="rig" position="0 0 0">
-            <a-camera id="main-camera" gps-camera rotation-reader look-controls wasd-controls="acceleration: 50;"></a-camera>
+        <a-sky color="#0d0d11"></a-sky>
+        
+        <a-cylinder position="0 -1.5 -4" radius="5" height="0.1" color="#1c1c24"></a-cylinder>
+
+        <a-entity light="type: ambient; color: #ffffff; intensity: 0.8;"></a-entity>
+        <a-entity light="type: directional; color: #ffffff; intensity: 0.6" position="2 4 3"></a-entity>
+
+        <a-entity id="camera-container" position="0 1.2 0">
+            <a-camera id="main-camera" look-controls="enabled: true" wasd-controls="enabled: false"></a-camera>
         </a-entity>
 
-        <a-entity id="camp-structures"></a-entity>
+        <a-entity id="camp-model-cluster" position="0 -1.4 -4" rotation="0 0 0">
+            </a-entity>
     </a-scene>
 
     <script>
@@ -105,7 +107,6 @@
         const CENTER_LNG = 19.966311;
         let uiVisible = true;
 
-        // פונקציה להסתרת והצגת ה-UI בלחיצת כפתור אחת
         function toggleUserInterface() {
             uiVisible = !uiVisible;
             document.getElementById('hud-id').classList.toggle('ui-hidden', !uiVisible);
@@ -113,10 +114,14 @@
             document.getElementById('map-id').classList.toggle('map-hidden', !uiVisible);
         }
 
-        function geodeticToLocal(lat, lng) {
+        // מטריצת המרה מוקטנת (פקטור 0.05) כדי להושיב את כל המחנה ברדיוס של שולחן סלון
+        function geodeticToLocalScale(lat, lng) {
             const latDistance = (lat - CENTER_LAT) * 111139; 
             const lngDistance = (lng - CENTER_LNG) * (111139 * Math.cos(CENTER_LAT * Math.PI / 180));
-            return { x: lngDistance, z: -latDistance };
+            return {
+                x: lngDistance * 0.06, // הקטנה מבוקרת לפרופורציית חדר
+                z: -latDistance * 0.06
+            };
         }
 
         async function loadCampData() {
@@ -124,68 +129,77 @@
                 const response = await fetch('plaszow_data.json');
                 const structures = await response.json();
                 
-                const container = document.getElementById('camp-structures');
+                const modelCluster = document.getElementById('camp-model-cluster');
                 const btnContainer = document.getElementById('dynamic-buttons');
                 
-                structures.forEach((item) => {
-                    const localCoords = geodeticToLocal(item.lat, item.lng);
+                structures.forEach((item, index) => {
+                    const local = geodeticToLocalScale(item.lat, item.lng);
                     
+                    // יישות מבנה מוקטנת
                     const entity = document.createElement('a-entity');
-                    // תמיכת דו-נתיבית: מציב מיקום תלת ממדי לסימולטור, ומצמיד רכיב GPS עבור השטח האמיתי
-                    entity.setAttribute('position', `${localCoords.x} 0 ${localCoords.z}`);
-                    entity.setAttribute('gps-entity-place', `latitude: ${item.lat}; longitude: ${item.lng};`);
+                    entity.setAttribute('id', `struct-${index}`);
+                    entity.setAttribute('position', `${local.x} 0 ${local.z}`);
                     
                     const box = document.createElement('a-box');
-                    box.setAttribute('width', item.scale.w);
-                    box.setAttribute('height', item.scale.h);
-                    box.setAttribute('depth', item.scale.d);
-                    box.setAttribute('material', `color: ${item.color}; opacity: 0.8;`);
+                    // התאמת קנה מידה של הצריפים לפרופורציית השולחן (חלקי 15)
+                    box.setAttribute('width', item.scale.w * 0.08);
+                    box.setAttribute('height', item.scale.h * 0.08);
+                    box.setAttribute('depth', item.scale.d * 0.08);
+                    box.setAttribute('material', `color: ${item.color}; opacity: 0.9; roughness: 0.6;`);
                     entity.appendChild(box);
                     
+                    // כיתוב מינימליסטי צף מעל הצריף
                     const text = document.createElement('a-text');
-                    text.setAttribute('value', item.name);
+                    text.setAttribute('value', item.name.split('/')[0]); // לוקח רק את העברית/פולנית לקומפקטיות
                     text.setAttribute('align', 'center');
-                    text.setAttribute('position', `0 ${item.scale.h + 1} 0`);
-                    text.setAttribute('scale', '2 2 2');
+                    text.setAttribute('position', `0 ${(item.scale.h * 0.08) + 0.3} 0`);
+                    text.setAttribute('scale', '0.6 0.6 0.6');
                     text.setAttribute('color', '#ffffff');
                     text.setAttribute('side', 'double');
                     entity.appendChild(text);
                     
-                    container.appendChild(entity);
+                    modelCluster.appendChild(entity);
                     
+                    // כפתור תפריט
                     const btn = document.createElement('button');
                     btn.className = 'nav-btn';
                     btn.innerHTML = `📍 ${item.name}`;
                     btn.onclick = () => {
-                        teleportTo(localCoords.x, 0, localCoords.z + 15, 0);
-                        updateGoogleMap(item.lat, item.lng);
+                        focusAndHighlight(index, item.lat, item.lng, local.x, local.z);
                     };
                     btnContainer.appendChild(btn);
                 });
             } catch (error) {
-                console.error("Error configuration:", error);
+                console.error("Data tracking failure:", error);
             }
         }
 
-        function updateGoogleMap(lat, lng) {
+        // פונקציית המיקוד המבריקה: מסובבת את כל הקומפלקס כדי להביא את המבנה הנבחר ישר אל מול פני המשתמש
+        function focusAndHighlight(activeIndex, lat, lng, localX, localZ) {
+            const cluster = document.getElementById('camp-model-cluster');
+            
+            // אנימציית סיבוב והזזה קלה כדי להביא את הצריף למרכז הבמה
+            cluster.setAttribute('animation', `property: position; to: ${-localX} -1.4 ${-4 - localZ}; dur: 800; easing: easeOutQuad`);
+            
+            // עדכון חלון הלוויין של גוגל מפות
             const mapFrame = document.getElementById('google-map-frame');
-            mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
-        }
-
-        function teleportTo(x, y, z, rotationY) {
-            const rig = document.getElementById('rig');
-            const camera = document.getElementById('main-camera');
-            if(rig && camera) {
-                rig.setAttribute('position', x + ' ' + y + ' ' + z);
-                if(camera.components['look-controls']) {
-                    camera.components['look-controls'].yawTurn = rotationY * Math.PI / 180;
-                }
-            }
+            mapFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&output=embed`;
+            
+            // הבהוב ויזואלי של האלמנט הנבחר כדי לסמן אותו
+            const targetEntity = document.getElementById(`struct-${activeIndex}`).querySelector('a-box');
+            targetEntity.setAttribute('material', 'color', '#ffdd00');
+            setTimeout(() => {
+                fetch('plaszow_data.json').then(r => r.json()).then(data => {
+                    targetEntity.setAttribute('material', 'color', data[activeIndex].color);
+                });
+            }, 1200);
         }
 
         function resetPosition() {
-            teleportTo(0, 0, 0, 0);
-            updateGoogleMap(CENTER_LAT, CENTER_LNG);
+            const cluster = document.getElementById('camp-model-cluster');
+            cluster.setAttribute('position', '0 -1.4 -4');
+            const mapFrame = document.getElementById('google-map-frame');
+            mapFrame.src = `https://maps.google.com/maps?q=${CENTER_LAT},${CENTER_LNG}&t=k&z=17&output=embed`;
         }
 
         window.addEventListener('DOMContentLoaded', loadCampData);
