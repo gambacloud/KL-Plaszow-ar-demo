@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>KL Plaszow - Desktop & Mobile AR Simulator</title>
+    <title>KL Plaszow - Final Robust AR Simulator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; user-select: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background-color: #000; user-select: none; touch-action: none; }
         
         .toggle-ui-btn {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -62,7 +62,7 @@
 
     <div id="hud-id" class="hud-panel">
         <h1>סימולטור פלאשוב KML</h1>
-        <p>צבוט את המסך עם שתי אצבעות כדי לבצע זום (Zoom) פנימה והחוצה.</p>
+        <p>נסה לצבוט את המסך בשתי אצבעות לזום. לחץ על כפתור במקרא כדי לקפוץ למבנה.</p>
     </div>
 
     <div id="nav-id" class="nav-panel">
@@ -83,7 +83,7 @@
         <a-entity light="type: directional; color: #ffffff; intensity: 0.5" position="2 5 3"></a-entity>
 
         <a-entity id="camera-container" position="0 1.0 0">
-            <a-camera id="main-camera" look-controls="enabled: true" wasd-controls="enabled: false"></a-camera>
+            <a-camera id="main-camera" look-controls="enabled: true" wasd-controls="enabled: false" fov="75"></a-camera>
         </a-entity>
 
         <a-entity id="camp-model-cluster" position="0 -1.4 -4" rotation="0 0 0"></a-entity>
@@ -94,9 +94,8 @@
         const CENTER_LNG = 19.966311;
         let uiVisible = true;
         
-        // משתנים לניהול זום באמצעות מגע (Pinch Zoom)
-        let baseScale = 1;
-        let currentZOffset = -4;
+        // ניהול זום מצלמה (FOV)
+        let baseFov = 75;
         let initialTouchDist = 0;
 
         function toggleUserInterface() {
@@ -112,22 +111,33 @@
             return { x: lngDistance * 0.08, z: -latDistance * 0.08 };
         }
 
-        // פונקציה חכמה לאיתור השם מכל תגית אפשרית ב-KML
+        // סורק רחב ומעודכן לחילוץ שמות מבלוקים מורכבים ב-KML
         function extractPlacemarkName(placemarkElement, fallbackIndex) {
-            // בדיקה 1: תגית name סטנדרטית
+            // 1. בדיקה ישירה של תגית שם
             const nameNode = placemarkElement.getElementsByTagName("name")[0];
             if (nameNode && nameNode.textContent.trim()) {
-                return nameNode.textContent.trim();
+                const txt = nameNode.textContent.trim();
+                if (!txt.startsWith("Placemark") && isNaN(txt)) return txt;
             }
             
-            // בדיקה 2: חיפוש בתוך תגיות Data / SimpleData של גוגל מפות
+            // 2. סריקה עמוקה של תגיות SimpleData (נפוץ מאוד בייצוא שכבות מורכבות)
             const simpleDataNodes = placemarkElement.getElementsByTagName("SimpleData");
             for (let j = 0; j < simpleDataNodes.length; j++) {
                 const attrName = simpleDataNodes[j].getAttribute("name");
-                if (attrName && (attrName.toLowerCase().includes("nazwa") || attrName.toLowerCase().includes("name"))) {
-                    if (simpleDataNodes[j].textContent.trim()) {
-                        return simpleDataNodes[j].textContent.trim();
-                    }
+                // אם השדה מכיל מילים המצביעות על תיאור או שם המבנה בפולנית/אנגלית
+                if (attrName && (attrName.toLowerCase().includes("nazwa") || attrName.toLowerCase().includes("name") || attrName.toLowerCase().includes("label") || attrName.toLowerCase().includes("desc"))) {
+                    const val = simpleDataNodes[j].textContent.trim();
+                    if (val) return val;
+                }
+            }
+
+            // 3. סריקה חלופית של תגיות Data רגילות
+            const dataNodes = placemarkElement.getElementsByTagName("Data");
+            for (let j = 0; j < dataNodes.length; j++) {
+                const attrName = dataNodes[j].getAttribute("name");
+                if (attrName && (attrName.toLowerCase().includes("name") || attrName.toLowerCase().includes("nazwa"))) {
+                    const val = dataNodes[j].getElementsByTagName("value")[0];
+                    if (val && val.textContent.trim()) return val.textContent.trim();
                 }
             }
             
@@ -186,7 +196,7 @@
                     box.setAttribute('material', `color: ${color}; opacity: 0.85;`);
                     entity.appendChild(box);
                     
-                    if (!isFence && buttonCount < 15) {
+                    if (!isFence && buttonCount < 20) {
                         const text = document.createElement('a-text');
                         text.setAttribute('value', name.split('/')[0].substring(0, 20));
                         text.setAttribute('align', 'center');
@@ -199,10 +209,9 @@
                     
                     modelCluster.appendChild(entity);
                     
-                    if (!isFence && buttonCount < 12) {
+                    if (!isFence && buttonCount < 14) {
                         const btn = document.createElement('button');
                         btn.className = 'nav-btn';
-                        // הזרקת השם שחולץ בצורה תקינה ישירות לכפתור
                         btn.innerHTML = `📍 ${name.split('/')[0]}`;
                         btn.onclick = () => focusOnTarget(local.x, local.z, lat, lng, `kml-obj-${i}`, color);
                         btnContainer.appendChild(btn);
@@ -210,14 +219,13 @@
                     }
                 }
             } catch (err) {
-                console.error("KML loading error:", err);
+                console.error("KML error parsing execution:", err);
             }
         }
 
         function focusOnTarget(localX, localZ, lat, lng, entityId, originalColor) {
             const cluster = document.getElementById('camp-model-cluster');
-            currentZOffset = -4 - localZ;
-            cluster.setAttribute('animation', `property: position; to: ${-localX} -1.4 ${currentZOffset}; dur: 800; easing: easeOutQuad`);
+            cluster.setAttribute('animation', `property: position; to: ${-localX} -1.4 ${-4 - localZ}; dur: 800; easing: easeOutQuad`);
             
             document.getElementById('google-map-frame').src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&output=embed`;
             
@@ -227,47 +235,46 @@
         }
 
         function resetPosition() {
-            currentZOffset = -4;
             document.getElementById('camp-model-cluster').setAttribute('position', '0 -1.4 -4');
+            document.getElementById('main-camera').setAttribute('fov', 75);
+            baseFov = 75;
             document.getElementById('google-map-frame').src = `https://maps.google.com/maps?q=${CENTER_LAT},${CENTER_LNG}&t=k&z=17&output=embed`;
         }
 
-        // --- לוגיקת צביטה עבור זום (Pinch to Zoom) במסכי מגע ---
-        window.addEventListener('touchstart', (e) => {
+        // --- מנגנון צביטה (Pinch) מבוסס שינוי FOV של העדשה ---
+        document.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 initialTouchDist = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
             }
-        });
+        }, { passive: true });
 
-        window.addEventListener('touchmove', (e) => {
+        document.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2 && initialTouchDist > 0) {
                 const currentDist = Math.hypot(
                     e.touches[0].pageX - e.touches[1].pageX,
                     e.touches[0].pageY - e.touches[1].pageY
                 );
-                const diff = currentDist / initialTouchDist;
                 
-                // שינוי עומק המיקום (Z) בהתאם למרחק הצביטה
-                const cluster = document.getElementById('camp-model-cluster');
-                const currentPos = cluster.getAttribute('position');
+                // חישוב יחס השינוי
+                const factor = initialTouchDist / currentDist; 
+                let newFov = baseFov * factor;
                 
-                let newZ = currentZOffset + (diff - 1) * 3;
-                newZ = Math.max(-15, Math.min(-1, newZ)); // הגבלת טווח הזום שלא יברח
+                // הגבלת זום עדשה הגיוני (בין 30 מעלות זום קרוב ל-100 מעלות זום רחוק)
+                newFov = Math.max(30, Math.min(100, newFov));
                 
-                cluster.setAttribute('position', `${currentPos.x} ${currentPos.y} ${newZ}`);
+                document.getElementById('main-camera').setAttribute('fov', newFov);
             }
-        });
+        }, { passive: true });
 
-        window.addEventListener('touchend', (e) => {
+        document.addEventListener('touchend', (e) => {
             if (e.touches.length < 2) {
-                const cluster = document.getElementById('camp-model-cluster');
-                currentZOffset = cluster.getAttribute('position').z;
+                baseFov = parseFloat(document.getElementById('main-camera').getAttribute('fov')) || 75;
                 initialTouchDist = 0;
             }
-        });
+        }, { passive: true });
 
         window.addEventListener('DOMContentLoaded', parseAndLoadKML);
     </script>
