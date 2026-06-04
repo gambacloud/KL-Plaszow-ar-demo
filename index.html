@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>KL Plaszow - Desktop AR Simulator</title>
-    <!-- Include A-Frame and Look-Controls / WASD components -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
@@ -26,8 +25,8 @@
 <body>
 
     <div class="hud-panel">
-        <h1>סימולטור פלאשוב AR (מצב פיתוח)</h1>
-        <p>הקוד מזהה אוטומטית שאתה לא בקרקוב ומפעיל סימולציית הליכה בשטח המחנה על בסיס נתוני ה-KML האמיתיים.</p>
+        <h1>סימולטור פלאשוב AR</h1>
+        <p>אם המסך ריק, לחץ עליו וגרור את העכבר שמאלה/ימינה כדי להסתובב. המבנים ממוקמים מסביבך במרחב.</p>
         <div class="controls-guide">
             <strong>מערכת שליטה:</strong><br>
             • סיבוב מבט: גרירה עם העכבר על המסך<br>
@@ -35,52 +34,50 @@
         </div>
     </div>
 
-    <!-- The 3D/AR Scene -->
     <a-scene embedded vr-mode-ui="enabled: false">
         
-        <!-- Sky placeholder to see spatial depth if webcam is not active on desktop -->
-        <a-sky color="#111116"></a-sky>
-        <a-grid material="color: #222; opacity: 0.2;"></a-grid>
-
-        <!-- CAMERA: Configured with standard desktop controls (Mouse + Keyboard WASD) for seamless local simulation -->
-        <!-- Placed at standard human eye level (1.6 meters) inside the camp area center -->
-        <a-entity id="rig" position="0 1.6 0" movement-controls="fly: false; speed: 0.3;">
-            <a-camera look-controls wasd-controls="acceleration: 65;"></a-camera>
-        </a-entity>
-
-        <!-- Absolute Spatial Anchors mapped to Relative Simulator Distance (Centered around the camp core) -->
+        <!-- סביבה בהירה יותר כדי לוודא שרואים את עומק השדה -->
+        <a-sky color="#1a1a24"></a-sky>
         
-        <!-- PLACEMARK 1: Szary dom (The Grey House) - 3D Mock based on exact KML Coordinates -->
-        <a-entity position="-10 0 -25">
-            <a-box scale="18 5 18" material="color: #616161; opacity: 0.7; transparent: true; wireframe: false;"></a-box>
-            <a-text value="Szary dom\n(The Grey House)" align="center" position="0 4 0" scale="2.5 2.5 2.5" color="#ffffff" side="double"></a-text>
+        <!-- רצפת רשת (Grid) כדי לתת אינדיקציה ויזואלית לתנועה במרחב -->
+        <a-entity position="0 0 0" rotation="-90 0 0" mixin="grid" 
+                  geometry="primitive: plane; width: 1000; height: 1000;" 
+                  material="type: grid; color: #333344; opacity: 0.4; fill: false;"></a-entity>
+
+        <!-- תאורה בסיסית כדי שהמודלים לא יהיו חשוכים -->
+        <a-entity light="type: ambient; color: #ffffff; intensity: 0.8;"></a-entity>
+        <a-entity light="type: directional; color: #fff; intensity: 0.6" position="-0.5 1 1"></a-entity>
+
+        <!-- מצלמה עם הגדרת מבט מובנית (look-controls) ותנועה (wasd-controls) -->
+        <a-entity id="rig" position="0 1.6 0">
+            <a-camera look-controls wasd-controls="acceleration: 40;"></a-camera>
         </a-entity>
 
-        <!-- PLACEMARK 2: Biuro Zarządu Obozu (Camp Administration Office) -->
-        <a-entity position="15 0 -20">
-            <a-box scale="25 3.5 12" material="color: #a1a1a1; opacity: 0.8; wireframe: true;"></a-box>
-            <a-text value="Camp Administration Office" align="center" position="0 3 0" scale="2 2 2" color="#ff3333" side="double"></a-text>
+        <!-- מיקומי המבנים - קורבו אליך כדי שיקפצו ישר לעין -->
+        
+        <!-- הבית האפור - ממוקם ישר לפניך (z: -15) -->
+        <a-entity position="0 0 -15">
+            <a-box scale="10 5 10" material="color: #4a4a5a; opacity: 0.85; wireframe: false;"></a-box>
+            <a-text value="Szary dom\n(The Grey House)" align="center" position="0 3.5 0" scale="2 2 2" color="#ffffff" side="double"></a-text>
         </a-entity>
 
-        <!-- PLACEMARK 3: Barak dla mezczyzn (Men's Barracks Example) -->
-        <a-entity position="-35 0 -5">
-            <a-box scale="40 3.2 12" material="color: #8d6e63; opacity: 0.5; transparent: true;"></a-box>
-            <a-text value="Men's Barracks" align="center" position="0 2.5 0" scale="2 2 2" color="#ffffff" side="double"></a-text>
+        <!-- משרדי המינהלת - מצד ימין שלך (x: 15) -->
+        <a-entity position="15 0 -10">
+            <a-box scale="12 3.5 8" material="color: #a1a1a1; opacity: 0.7; wireframe: true;"></a-box>
+            <a-text value="Camp Administration" align="center" position="0 2.5 0" scale="1.5 1.5 1.5" color="#ff3333" side="double"></a-text>
         </a-entity>
 
-        <!-- PLACEMARK 4: Komendatura (Camp Headquarters Area) -->
-        <a-entity position="5 0 -55">
-            <a-box scale="20 4 15" material="color: #b0bec5; opacity: 0.6; transparent: true;"></a-box>
-            <a-text value="Komendatura\n(Headquarters)" align="center" position="0 3.5 0" scale="2.5 2.5 2.5" color="#ffffff" side="double"></a-text>
+        <!-- צריף גברים - מצד שמאל שלך (x: -15) -->
+        <a-entity position="-15 0 -5">
+            <a-box scale="15 3.2 6" material="color: #8d6e63; opacity: 0.7; transparent: true;"></a-box>
+            <a-text value="Men's Barracks" align="center" position="0 2.2 0" scale="1.5 1.5 1.5" color="#ffffff" side="double"></a-text>
         </a-entity>
 
     </a-scene>
 
-    <!-- Fallback/Injected JS logic to bridge the gap between GPS data and Desktop testing -->
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             console.log("Plaszow AR Local Mock Engine Loaded Successfully.");
-            // When migrating back to live field test, the 'a-camera' tag will simply swap to use 'gps-camera'
         });
     </script>
 </body>
